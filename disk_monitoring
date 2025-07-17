@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #디스크 사용량 점검 대상 호스트 목록 파일
-HOST_FILE="/home/사용자명/파일명" #해당 경로에 넣으시고 수정하세요.
+HOST_FILE="/home/사용자명/DISK_HOSTS.txt" #해당 경로에 넣으시고 수정하세요.
 
 #출력 헤더: 각 열의 너비 지정
 printf "%-16s | %-20s | %-6s | %-6s | %-6s\n" "TIME" "HOSTNAME" "USED" "AVAIL" "USE%"
