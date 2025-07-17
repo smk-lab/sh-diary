@@ -1,0 +1,36 @@
+#!/bin/bash
+
+#디스크 사용량 점검 대상 호스트 목록 파일
+HOST_FILE="/home/사용자명/파일명" #해당 경로에 넣으시고 수정하세요.
+
+#출력 헤더: 각 열의 너비 지정
+printf "%-16s | %-20s | %-6s | %-6s | %-6s\n" "TIME" "HOSTNAME" "USED" "AVAIL" "USE%"
+
+# 호스트 파일에서 주석 제외, IP와 HOST가 모두 있는 줄만 추출하여 루프에 전달
+while read -r IP HOST; do
+    TIME=$(date "+%Y-%m-%d %H:%M")
+
+    # 원격 서버에서 루트 디스크 사용량 확인
+    # -o BatchMode=yes: 비밀번호 입력 시 입력 없이 오류 처리
+    # -o ConnectTimeout=5: 연결 타임아웃 5초
+    # </dev/null: ssh가 stdin을 점유하지 않도록 차단
+    # 2>/dev/null: 오류 출력 무시
+    DISK_LINE=$(ssh -o BatchMode=yes -o ConnectTimeout=5 "$IP" "df -hP / | tail -1" </dev/null 2>/dev/null)
+
+    # 접속 실패 또는 명령 실패 시 ERROR 출력
+    if [ -z "$DISK_LINE" ]; then
+        printf "%-16s | %-20s | %-6s | %-6s | %-6s\n" "$TIME" "$HOST" "ERROR" "ERROR" "ERROR"
+        # <- 이 위치에 에러 메세지 직접 출력 구문 추가
+        ssh -o BatchMode=yes -o ConnectTimeout=5 "$IP" "df -hP / | tail -1" </dev/null
+        continue
+    fi
+
+    # df 출력에서 사용량 (USED), 가용량 (AVAIL), 사용률 (USE%) 추출
+    USED=$(echo "$DISK_LINE" | awk '{print $3}')
+    AVAIL=$(echo "$DISK_LINE" | awk '{print $4}')
+    USEP=$(echo "$DISK_LINE" | awk '{print $5}')
+
+    # 결과 출력
+    # 호스트 파일에서 주석 제외, IP와 HOST가 모두 있는 줄만 추출하여 루프에 전달
+    printf "%-16s | %-20s | %-6s | %-6s | %-6s\n" "$TIME" "$HOST" "$USED" "$AVAIL" "$USEP"
+done < <(awk '!/^#/ && NF>=2 {print $1, $2}' "$HOST_FILE")
